@@ -8,7 +8,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-//receive  - первый маршрут, пока только с access токеном
+//receive  - первый маршрут, пока без обращения к БД
 func receive(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
 	err := json.NewDecoder(r.Body).Decode(&creds)
@@ -25,25 +25,52 @@ func receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//`Access токен тип JWT, алгоритм SHA512.`
 	atExpiration := time.Now().Add(5 * time.Minute)
-	claims := &claims{
+	atClaims := &claims{
 		Username: creds.Username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: atExpiration.Unix(),
+			//jti для связи токенов в паре
+			Id: "test",
 		},
 	}
 
-	//`Access токен тип JWT, алгоритм SHA512.`
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS512, atClaims)
 	atSigned, err := accessToken.SignedString(jwtKey)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
+	//`Refresh токен тип произвольный (jwt), формат передачи base64`
+	rtExpiration := time.Now().Add(5 * time.Hour)
+	rtClaims := &claims{
+		Username: creds.Username,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: rtExpiration.Unix(),
+			Id:        "test",
+		},
+	}
+
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
+	rtSigned, err := refreshToken.SignedString(jwtKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	//TODO: решить где хранить
 	http.SetCookie(w, &http.Cookie{
-		Name:    "at",
-		Value:   atSigned,
-		Expires: atExpiration,
+		Name:     "at",
+		Value:    atSigned,
+		Expires:  atExpiration,
+		HttpOnly: true, //защ от xss
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "rt",
+		Value:    rtSigned,
+		Expires:  rtExpiration,
+		HttpOnly: true,
 	})
 }
