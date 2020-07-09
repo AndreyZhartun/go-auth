@@ -3,15 +3,18 @@ package main
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
-//дополнительный маршрут для полноты картины
+//дополнительный маршрут - типичный запрос к ресурсу после авторизации
 //accessProtectedResource проверяет access токен и выдает доступ к защищенному ресурсу
 func accessProtectedResource(w http.ResponseWriter, r *http.Request) {
-	// токен из куки
-	c, err := r.Cookie("at")
+	// checkToken в refresh.go
+	code, claims := checkToken(r.Cookie("at"))
+	if code != http.StatusOK {
+		w.WriteHeader(code)
+		return
+	}
+	/*c, err := r.Cookie("at")
 	if err != nil {
 		if err == http.ErrNoCookie {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -44,7 +47,7 @@ func accessProtectedResource(w http.ResponseWriter, r *http.Request) {
 	if !tkn.Valid {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
-	}
+	}*/
 	/* проверка соотнесения токенов в sub
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		// Get the user record from database or
