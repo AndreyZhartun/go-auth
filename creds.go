@@ -6,3 +6,9 @@ type Credentials struct {
 	Username string   `json:"username"`
 	Rts      []string `json:"rts"`
 }
+
+// User xd
+type User struct {
+	GUID string     `json:"guid"`
+	Rts  []([]byte) `json:"rts"`
+}
