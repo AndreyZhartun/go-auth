@@ -6,3 +6,9 @@ type User struct {
 	GUID string     `json:"guid"`
 	Rts  []([]byte) `json:"rts"`
 }
+
+// RemoveAt убирает элемент Rts с индексом i
+func (u *User) RemoveAt(i int) {
+	u.Rts[i] = u.Rts[len(u.Rts)-1]
+	u.Rts = u.Rts[:len(u.Rts)-1]
+}

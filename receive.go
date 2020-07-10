@@ -25,10 +25,13 @@ func receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var guid string = pars[0]
-
+	//azadmin: saJgPQmeekDwE5S
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		connString,
+	))
 
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
@@ -43,7 +46,7 @@ func receive(w http.ResponseWriter, r *http.Request) {
 		return
 	}*/
 
-	collection := client.Database("goauthtest").Collection("users")
+	collection := client.Database("goauth").Collection("users")
 	findFilter := bson.M{"guid": guid}
 	var result User
 
@@ -79,7 +82,7 @@ func receive(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
+	fmt.Printf("inserting: %s\n", rtSigned)
 	if isNewUser {
 		newRts := make([]([]byte), 0, 1)
 		newRts = append(newRts, rtHashed)

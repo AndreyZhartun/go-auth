@@ -29,7 +29,9 @@ func remove(w http.ResponseWriter, r *http.Request) {
 	//TODO: в одну транзакцию
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		connString,
+	))
 
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
@@ -38,7 +40,7 @@ func remove(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	collection := client.Database("goauthtest").Collection("users")
+	collection := client.Database("goauth").Collection("users")
 	findFilter := bson.M{"guid": rtClaims.UserID}
 	var result User
 
@@ -57,6 +59,7 @@ func remove(w http.ResponseWriter, r *http.Request) {
 		err = bcrypt.CompareHashAndPassword(hash, []byte(rtString))
 		if err == nil {
 			rtIndex = i
+			fmt.Printf("deleting %d: %s\n", rtIndex, rtString)
 			break
 		}
 	}
@@ -65,12 +68,14 @@ func remove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newRts := make([]([]byte), len(result.Rts), len(result.Rts))
+	/*newRts := make([]([]byte), len(result.Rts), len(result.Rts))
 	copy(newRts, result.Rts)
 	newRts[rtIndex] = newRts[len(newRts)-1]
 	newRts[len(newRts)-1] = []byte("")
-	newRts = newRts[:len(newRts)-1]
-	newUser := User{GUID: rtClaims.UserID, Rts: newRts}
+	newRts = newRts[:len(newRts)-1]*/
+	result.RemoveAt(rtIndex)
+	//fmt.Printf("newRts: %s\n", newRts)
+	newUser := User{GUID: rtClaims.UserID, Rts: result.Rts}
 
 	updateFilter := bson.D{
 		primitive.E{Key: "$set", Value: bson.D{
