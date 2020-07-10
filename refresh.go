@@ -50,6 +50,49 @@ func getClaims(c *http.Cookie) (*сlaims, error) {
 	return claims, nil
 }
 
+func validateWithDB(rt string, guid string) error {
+	//проверка наличия refresh токена в БД
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			//w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}()
+
+	collection := client.Database("goauthtest").Collection("users")
+	findFilter := bson.M{"guid": guid}
+	var result User
+
+	err = collection.FindOne(ctx, findFilter).Decode(&result)
+	if err != nil {
+		fmt.Printf("collection find err: %v\n", err)
+		/*if err == mongo.ErrNoDocuments {
+			w.WriteHeader(http.StatusUnauthorized)
+			return err
+		}*/
+		//w.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
+
+	var rtExists bool
+	for _, hash := range result.Rts {
+		err = bcrypt.CompareHashAndPassword(hash, []byte(rt))
+		if err == nil {
+			rtExists = true
+			break
+		}
+	}
+	if !rtExists {
+		//w.WriteHeader(http.StatusUnauthorized)
+		return errors.New("Not found")
+	}
+	return nil
+}
+
 // `Второй маршрут выполняет Refresh операцию на пару Access, Refresh токенов`
 func refresh(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("rt")
@@ -85,7 +128,12 @@ func refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//проверка наличия refresh токена в БД
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	err = validateWithDB(rtString, rtClaims.UserID)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	/*ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 
@@ -122,7 +170,7 @@ func refresh(w http.ResponseWriter, r *http.Request) {
 	if !rtExists {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
-	}
+	}*/
 
 	//проверка токенов завершена
 	atExpiration := time.Now().Add(5 * time.Minute)

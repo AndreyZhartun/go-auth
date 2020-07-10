@@ -49,7 +49,7 @@ func receive(w http.ResponseWriter, r *http.Request) {
 
 	err = collection.FindOne(ctx, findFilter).Decode(&result)
 	isNewUser := err == mongo.ErrNoDocuments
-	fmt.Printf("%v; %s -> %v\n", err, result.GUID, result.Rts)
+	//fmt.Printf("%v; %s -> %v\n", err, result.GUID, result.Rts)
 	if err != nil && !isNewUser {
 		fmt.Printf("collection find err: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
