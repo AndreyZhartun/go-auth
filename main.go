@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+//
 var jwtKey = []byte("very_secret_key")
 
 func main() {
