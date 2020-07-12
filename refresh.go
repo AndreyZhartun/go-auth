@@ -35,10 +35,6 @@ func getClaims(c *http.Cookie) (*сlaims, error) {
 		return jwtKey, nil
 	})
 	if err != nil {
-		/*if err == jwt.ErrSignatureInvalid {
-			//fmt.Println("tk sign not valid")
-			return nil, jwt.ErrSignatureInvalid
-		}*/
 		//fmt.Printf("parse err: %v", err)
 		return nil, err
 	}
@@ -48,51 +44,6 @@ func getClaims(c *http.Cookie) (*сlaims, error) {
 	}
 
 	return claims, nil
-}
-
-func validateWithDB(rt string, guid string) error {
-	//проверка наличия refresh токена в БД
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		connString,
-	))
-
-	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			//w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	}()
-
-	collection := client.Database("goauth").Collection("users")
-	findFilter := bson.M{"guid": guid}
-	var result User
-
-	err = collection.FindOne(ctx, findFilter).Decode(&result)
-	if err != nil {
-		fmt.Printf("collection find err: %v\n", err)
-		/*if err == mongo.ErrNoDocuments {
-			w.WriteHeader(http.StatusUnauthorized)
-			return err
-		}*/
-		//w.WriteHeader(http.StatusInternalServerError)
-		return err
-	}
-
-	var rtExists bool
-	for _, hash := range result.Rts {
-		err = bcrypt.CompareHashAndPassword(hash, []byte(rt))
-		if err == nil {
-			rtExists = true
-			break
-		}
-	}
-	if !rtExists {
-		//w.WriteHeader(http.StatusUnauthorized)
-		return errors.New("Not found")
-	}
-	return nil
 }
 
 // `Второй маршрут выполняет Refresh операцию на пару Access, Refresh токенов`
@@ -129,16 +80,13 @@ func refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//проверка наличия refresh токена в БД
-	err = validateWithDB(rtString, rtClaims.UserID)
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-	/*ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	//Проверка наличия хеша refresh токена в БД
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		connString,
+	))
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -146,33 +94,51 @@ func refresh(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	collection := client.Database("goauthtest").Collection("users")
-	findFilter := bson.M{"guid": rtClaims.UserID}
-	var result User
-
-	err = collection.FindOne(ctx, findFilter).Decode(&result)
-	if err != nil {
-		fmt.Printf("collection find err: %v\n", err)
-		if err == mongo.ErrNoDocuments {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+	var session mongo.Session
+	if session, err = client.StartSession(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	var rtExists bool
-	for _, hash := range result.Rts {
-		err = bcrypt.CompareHashAndPassword(hash, []byte(rtString))
-		if err == nil {
-			rtExists = true
-			break
-		}
-	}
-	if !rtExists {
-		w.WriteHeader(http.StatusUnauthorized)
+	if err = session.StartTransaction(); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}*/
+	}
+	if err = mongo.WithSession(ctx, session, func(sc mongo.SessionContext) error {
+		collection := client.Database("goauth").Collection("users")
+		findFilter := bson.M{"guid": rtClaims.UserID}
+		var result User
+
+		err = collection.FindOne(ctx, findFilter).Decode(&result)
+		if err != nil {
+			fmt.Printf("collection find err: %v\n", err)
+			/*if err == mongo.ErrNoDocuments {
+				w.WriteHeader(http.StatusUnauthorized)
+				return err
+			}*/
+			//w.WriteHeader(http.StatusInternalServerError)
+			return err
+		}
+
+		var rtExists bool
+		for _, hash := range result.Rts {
+			//err = bcrypt.CompareHashAndPassword(hash, []byte(rtString))
+			err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(reverse(rtString)))
+			if err == nil {
+				rtExists = true
+				break
+			}
+		}
+		if !rtExists {
+			//w.WriteHeader(http.StatusUnauthorized)
+			return errors.New("Not found")
+		}
+		return nil
+	}); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	session.EndSession(ctx)
 
 	//проверка токенов завершена
 	atExpiration := time.Now().Add(5 * time.Minute)
