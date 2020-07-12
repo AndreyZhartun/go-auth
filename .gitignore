@@ -2,6 +2,6 @@
 
 db/
 
-ignore_*.go
+#ignore_*.go
 
 *.exe
