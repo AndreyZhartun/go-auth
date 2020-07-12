@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//`Четвертый маршрут удаляет все Refresh токены из базы для конкретного пользователя`
 func removeAll(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("rt")
 	rtString := c.Value

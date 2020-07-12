@@ -5,10 +5,10 @@ import (
 	"net/http"
 )
 
-//TODO транзакции, replica set
+//TODO +транзакции, replica set - есть в атласе
+//+jit для пар и фикс бага с 3 маршрутом
+//тесты
 //$ mongod --dbpath=C:/Users/Пользователь/go/src/go-auth/db
-var jwtKey = []byte("very_secret_key")
-
 func main() {
 	//1. выдача пары токенов
 	http.HandleFunc("/receive", receive)

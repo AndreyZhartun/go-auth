@@ -14,6 +14,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//`Третий маршрут удаляет конкретный Refresh токен из базы`
+//удаляется токен, который был дан с запросом
 func remove(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("rt")
 	rtString := c.Value

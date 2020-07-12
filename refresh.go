@@ -14,38 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// jwt.StandardClaims для exp и jti
-type сlaims struct {
-	UserID string `json:"uid"`
-	jwt.StandardClaims
-}
-
-func getClaims(c *http.Cookie) (*сlaims, error) {
-	tknStr := c.Value
-	claims := &сlaims{}
-
-	// парс JWT в claims
-	tkn, err := jwt.ParseWithClaims(tknStr, claims, func(token *jwt.Token) (interface{}, error) {
-		// проверка, что токен подписан с SHA
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			//fmt.Printf("sign method unexpected: %v\n", token.Header["alg"])
-			return nil, fmt.Errorf("Неожиданный алгоритм подписи: %v", token.Header["alg"])
-		}
-
-		return jwtKey, nil
-	})
-	if err != nil {
-		//fmt.Printf("parse err: %v", err)
-		return nil, err
-	}
-	if !tkn.Valid {
-		//fmt.Println("tk not valid")
-		return claims, errors.New("Token is not valid")
-	}
-
-	return claims, nil
-}
-
 // `Второй маршрут выполняет Refresh операцию на пару Access, Refresh токенов`
 func refresh(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("rt")
