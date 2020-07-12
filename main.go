@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 )
 
 //TODO +транзакции, replica set - есть в атласе
@@ -22,5 +23,6 @@ func main() {
 	//access - типичный запрос к защищенному ресурсу, не изменяет токены
 	http.HandleFunc("/access", accessProtectedResource)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	port := os.Getenv("PORT")
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
