@@ -6,10 +6,15 @@ import (
 	"os"
 )
 
-//TODO +транзакции, replica set - есть в атласе
-//+jit для пар и фикс бага с 3 маршрутом
-//тесты
-//$ mongod --dbpath=C:/Users/Пользователь/go/src/go-auth/db
+/*
+	receive, refresh, remove, removeall - основные 4 маршрута
+	extra_access - доп. маршрут для теста правильности обработки токенов
+
+	env_vars - строки для доступа к БД и ключ для шифрования jwt
+	token_operaions - операции с jwt токенами
+	user - модель пользователя в БД
+*/
+
 func main() {
 	//1. выдача пары токенов
 	http.HandleFunc("/receive", receive)
