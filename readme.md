@@ -13,7 +13,7 @@ Access, Refresh токены обоюдно связаны случайно ге
 - MongoDB Atlas (Replica Set, транзакции)
 - Heroku
 ## Результат:
-Работающее приложение на [Heroku](https://sheltered-reef-38969.herokuapp.com).
+Работающее приложение на [Heroku](https://az-go-auth.herokuapp.com).
 HTTP маршруты могут быть проверены запросами к:
 1. /receive?guid=xxxxxxxx-...-xxxx
 2. /refresh
