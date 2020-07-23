@@ -33,7 +33,7 @@ Access, Refresh are linked with a secure random string (-> *receive.go*), preven
 - MongoDB Atlas (Replica Set, transactions)
 - Heroku
 ## Results:
-The app on [Heroku](https://sheltered-reef-38969.herokuapp.com).
+The app on [Heroku](https://az-go-auth.herokuapp.com/).
 HTTP routes are:
 1. /receive?guid=xxxxxxxx-...-xxxx
 2. /refresh
